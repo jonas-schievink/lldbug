@@ -2,7 +2,9 @@ Running this crashes with a segmentation fault on my Linux machine:
 
 ```
 docker build .
-docker run [image]
+docker run -it [image] /bin/bash
+# Inside the container:
+cargo run
 ```
 
 Or outside of Docker:

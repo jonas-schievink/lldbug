@@ -13,6 +13,3 @@ ENV RUSTFLAGS=-Ccodegen-units=1
 ENV CARGO_INCREMENTAL=0
 
 COPY . /segfault
-
-CMD ["cargo", "run"]
-
