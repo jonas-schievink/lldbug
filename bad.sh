@@ -9,10 +9,10 @@ function bail
 export RUSTFLAGS=-Ccodegen-units=1
 export CARGO_INCREMENTAL=0
 cargo build $@ || bail "build failed"
-output=$(readelf --wide --debug-dump=rawline target/debug/ta-client 2>&1 > /dev/null)
+output=$(dwarf-validate target/debug/ta-client)
 
 echo "$output"
-echo "$output" | grep "the section is too small" > /dev/null || bail "!!! appears to be FIXED !!!"
+echo "$output" | grep "DWARF error" > /dev/null || bail "!!! appears to be FIXED !!!"
 
 echo "still broken - good"
 exit 0
