@@ -8,7 +8,7 @@ docker run
 Or outside of Docker:
 
 ```
-env RUST_BACKTRACE=1 cargo run
+env RUST_BACKTRACE=1 cargo +nightly-2019-01-08 run
 ```
 
 This seems to happen due to malformed debug info when the program panics and
