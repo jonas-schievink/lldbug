@@ -2,7 +2,7 @@ Running this crashes with a segmentation fault on my Linux machine:
 
 ```
 docker build .
-docker run
+docker run [image]
 ```
 
 Or outside of Docker:
