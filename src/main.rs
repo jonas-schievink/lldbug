@@ -1,5 +1,5 @@
 extern crate failure;
-extern crate rustls;
+extern crate ring;
 
 use failure::Error;
 
