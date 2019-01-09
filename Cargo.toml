@@ -1,0 +1,8 @@
+[package]
+name = "ta-client"
+version = "0.1.0"
+
+[dependencies]
+rmp-serde = "0.13.7"
+failure = "0.1.5"
+rustls = "0.14.0"
