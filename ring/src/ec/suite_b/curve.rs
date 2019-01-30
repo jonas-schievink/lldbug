@@ -19,7 +19,7 @@ pub struct Curve {
     // Precondition: `bytes` is the correct length.
     pub check_private_key_bytes: fn(bytes: &[u8]) -> Result<(), error::Unspecified>,
 
-    pub generate_private_key: fn(rng: &rand::SecureRandom) -> Result<ec::PrivateKey, error::Unspecified>,
+    pub generate_private_key: fn() -> Result<ec::PrivateKey, error::Unspecified>,
 
     pub public_from_private:
         fn(public_out: &mut [u8], private_key: &ec::PrivateKey) -> Result<(), error::Unspecified>,
@@ -35,10 +35,8 @@ fn check_private_key_bytes(bytes: &[u8]) -> Result<(), error::Unspecified> {
     ec::suite_b::private_key::check_scalar_big_endian_bytes(&ec::suite_b::ops::p384::PRIVATE_KEY_OPS, bytes)
 }
 
-fn generate_private_key(
-    rng: &rand::SecureRandom,
-) -> Result<ec::PrivateKey, error::Unspecified> {
-    ec::suite_b::private_key::generate_private_key(&ec::suite_b::ops::p384::PRIVATE_KEY_OPS, rng)
+fn generate_private_key() -> Result<ec::PrivateKey, error::Unspecified> {
+    ec::suite_b::private_key::generate_private_key(&ec::suite_b::ops::p384::PRIVATE_KEY_OPS)
 }
 
 fn public_from_private(
@@ -46,3 +44,13 @@ fn public_from_private(
 ) -> Result<(), error::Unspecified> {
     ec::suite_b::private_key::public_from_private(&ec::suite_b::ops::p384::PRIVATE_KEY_OPS, public_out, private_key)
 }
+
+/*
+
+Current theory: As long as there's still a call to
+
+scalar_from_big_endian_bytes
+
+the bug reproduces
+
+*/

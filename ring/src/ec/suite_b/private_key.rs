@@ -16,60 +16,19 @@
 //! ECDSA signing).
 
 use super::ops::*;
-use crate::{ec, error, rand};
+use crate::{ec, error};
 use untrusted;
 
 pub fn generate_private_key(
-    ops: &PrivateKeyOps, rng: &rand::SecureRandom,
+    ops: &PrivateKeyOps,
 ) -> Result<ec::PrivateKey, error::Unspecified> {
-    // [NSA Suite B Implementer's Guide to ECDSA] Appendix A.1.2, and
-    // [NSA Suite B Implementer's Guide to NIST SP 800-56A] Appendix B.2,
-    // "Key Pair Generation by Testing Candidates".
-    //
-    // [NSA Suite B Implementer's Guide to ECDSA]: doc/ecdsa.pdf.
-    // [NSA Suite B Implementer's Guide to NIST SP 800-56A]: doc/ecdh.pdf.
-
-    // TODO: The NSA guide also suggests, in appendix B.1, another mechanism
-    // that would avoid the need to use `rng.fill()` more than once. It works
-    // by generating an extra 64 bits of random bytes and then reducing the
-    // output (mod n). Supposedly, this removes enough of the bias towards
-    // small values from the modular reduction, but it isn't obvious that it is
-    // sufficient. TODO: Figure out what we can do to mitigate the bias issue
-    // and switch to the other mechanism.
-
-    let num_limbs = ops.common.num_limbs;
-
-    // XXX: The value 100 was chosen to match OpenSSL due to uncertainty of
-    // what specific value would be better, but it seems bad to try 100 times.
-    for _ in 0..100 {
-        let mut candidate = [0; ec::SCALAR_MAX_BYTES];
-
-        {
-            // NSA Guide Steps 1, 2, and 3.
-            //
-            // Since we calculate the length ourselves, it is pointless to check
-            // it, since we can only check it by doing the same calculation.
-            let candidate = &mut candidate[..(num_limbs * LIMB_BYTES)];
-
-            // NSA Guide Step 4.
-            //
-            // The requirement that the random number generator has the
-            // requested security strength is delegated to `rng`.
-            rng.fill(candidate)?;
-
-            // NSA Guide Steps 5, 6, and 7.
-            if check_scalar_big_endian_bytes(ops, candidate).is_err() {
-                continue;
-            }
-        }
-
-        // NSA Guide Step 8 is done in `public_from_private()`.
-
-        // NSA Guide Step 9.
-        return Ok(ec::PrivateKey { bytes: candidate });
+    let candidate = [0; ec::SCALAR_MAX_BYTES];
+    // NSA Guide Steps 5, 6, and 7.
+    if check_scalar_big_endian_bytes(ops, &candidate).is_err() {
+        Err(error::Unspecified)
+    } else {
+        Ok(ec::PrivateKey { bytes: candidate })
     }
-
-    Err(error::Unspecified)
 }
 
 // The underlying X25519 and Ed25519 code uses an [u8; 32] to store the private
@@ -124,7 +83,7 @@ pub fn public_from_private(
 ) -> Result<(), error::Unspecified> {
     let elem_and_scalar_bytes = ops.common.num_limbs * LIMB_BYTES;
     debug_assert_eq!(public_out.len(), 1 + (2 * elem_and_scalar_bytes));
-    let my_private_key = private_key_as_scalar(ops, my_private_key);
+    let _my_private_key = private_key_as_scalar(ops, my_private_key);
 
     // `big_endian_affine_from_jacobian` verifies that the point is not at
     // infinity and is on the curve.
