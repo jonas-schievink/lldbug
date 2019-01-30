@@ -25,7 +25,7 @@ macro_rules! p384_limbs {
     };
 }
 
-pub static COMMON_OPS: CommonOps = CommonOps {
+static COMMON_OPS: CommonOps = CommonOps {
     num_limbs: 384 / LIMB_BITS,
 
     n: Elem {

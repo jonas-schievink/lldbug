@@ -48,7 +48,6 @@ const RING_TEST_SRCS: &[&str] = &[];
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const RING_INCLUDES: &[&str] =
     &[
-      "crypto/limbs/limbs.h",
     ];
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -60,7 +59,6 @@ const PREGENERATED: &'static str = "pregenerated";
 
 fn c_flags(target: &Target) -> &'static [&'static str] {
     static NON_MSVC_FLAGS: &[&str] = &[
-        "-std=c1x", // GCC 4.6 requires "c1x" instead of "c11"
         "-Wbad-function-cast",
         "-Wmissing-prototypes",
         "-Wnested-externs",
@@ -91,8 +89,6 @@ fn cpp_flags(target: &Target) -> &'static [&'static str] {
         "-Wundef",
         "-Wuninitialized",
         "-Wwrite-strings",
-        "-fno-strict-aliasing",
-        "-fvisibility=hidden",
         "-Wno-cast-align",
     ];
     NON_MSVC_FLAGS

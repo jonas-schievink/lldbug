@@ -32,19 +32,6 @@ pub type Scalar<E = Unencoded> = elem::Elem<N, E>;
 #[derive(Clone, Copy)]
 pub enum N {}
 
-
-#[cfg(all(target_pointer_width = "32", target_endian = "little"))]
-macro_rules! limbs {
-    ( $limb_b:expr, $limb_a:expr, $limb_9:expr, $limb_8:expr,
-      $limb_7:expr, $limb_6:expr, $limb_5:expr, $limb_4:expr,
-      $limb_3:expr, $limb_2:expr, $limb_1:expr, $limb_0:expr ) => {
-        [
-            $limb_0, $limb_1, $limb_2, $limb_3, $limb_4, $limb_5, $limb_6, $limb_7, $limb_8,
-            $limb_9, $limb_a, $limb_b,
-        ]
-    };
-}
-
 #[cfg(all(target_pointer_width = "64", target_endian = "little"))]
 macro_rules! limbs {
     ( $limb_b:expr, $limb_a:expr, $limb_9:expr, $limb_8:expr,
@@ -76,22 +63,19 @@ pub struct PrivateKeyOps {
 pub fn scalar_parse_big_endian_fixed_consttime(
     ops: &CommonOps, bytes: untrusted::Input,
 ) -> Result<Scalar, error::Unspecified> {
-    parse_big_endian_fixed_consttime(ops, bytes, AllowZero::No, &ops.n.limbs[..ops.num_limbs])
+    parse_big_endian_fixed_consttime(ops, bytes)
 }
 
 fn parse_big_endian_fixed_consttime<M>(
-    ops: &CommonOps, bytes: untrusted::Input, allow_zero: AllowZero, max_exclusive: &[Limb],
+    ops: &CommonOps, bytes: untrusted::Input,
 ) -> Result<elem::Elem<M, Unencoded>, error::Unspecified> {
     if bytes.len() != ops.num_limbs * LIMB_BYTES {
         return Err(error::Unspecified);
     }
     let mut r = elem::Elem::zero();
     parse_big_endian_in_range_and_pad_consttime(
-        bytes,
-        allow_zero,
-        max_exclusive,
         &mut r.limbs[..ops.num_limbs],
-    )?;
+    );
     Ok(r)
 }
 

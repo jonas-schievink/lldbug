@@ -4,13 +4,11 @@ extern crate libc;
 extern crate lazy_static;
 extern crate untrusted;
 
-mod arithmetic;
-
 mod c;
 
-pub mod ec;
 mod error;
-mod limb;
+
+pub mod limb;
 
 mod private {
     /// Traits that are designed to only be implemented internally in *ring*.
