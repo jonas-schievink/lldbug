@@ -1,7 +1,10 @@
 [package]
 name = "ta-client"
 version = "0.1.0"
+build = "build.rs"
 
 [dependencies]
 rmp-serde = "0.13.7"
-ring = { path = "ring" }
+
+[build-dependencies]
+cc = "1.0.28"
