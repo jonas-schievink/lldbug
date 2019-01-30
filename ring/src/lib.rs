@@ -1,27 +1,23 @@
-#![no_std]
+type Limb = u64;
 
-extern crate libc;
-extern crate lazy_static;
-extern crate untrusted;
+/// Parses `input` into `result`, verifies that the value is less than
+/// `max_exclusive`, and pads `result` with zeros to its length. If `allow_zero`
+/// is not `AllowZero::Yes`, zero values are rejected.
+///
+/// This attempts to be constant-time with respect to the actual value *only if*
+/// the value is actually in range. In other words, this won't leak anything
+/// about a valid value, but it might leak small amounts of information about an
+/// invalid value (which constraint it failed).
+pub fn parse_big_endian_in_range_and_pad_consttime(
+    result: &mut [Limb],
+) {
+    for r in &mut result[..] {
+        *r = 0;
+    }
 
-mod c;
+    unsafe { LIMBS_are_zero(result.as_ptr()) };
+}
 
-mod error;
-
-pub mod limb;
-
-mod private {
-    /// Traits that are designed to only be implemented internally in *ring*.
-    //
-    // Usage:
-    // ```
-    // use crate::private;
-    //
-    // pub trait MyType: private::Sealed {
-    //     // [...]
-    // }
-    //
-    // impl private::Sealed for MyType {}
-    // ```
-    pub trait Sealed {}
+extern "C" {
+    fn LIMBS_are_zero(a: *const Limb);
 }
