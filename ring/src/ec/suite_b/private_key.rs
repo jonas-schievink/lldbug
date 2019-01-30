@@ -15,8 +15,7 @@
 //! Functionality shared by operations on private keys (ECC keygen and
 //! ECDSA signing).
 
-use super::{ops::*,};
-use arithmetic::montgomery::R;
+use super::ops::*;
 use crate::{ec, error, rand};
 use untrusted;
 

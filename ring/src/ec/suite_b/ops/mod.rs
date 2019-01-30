@@ -13,11 +13,10 @@
 // CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 use arithmetic::montgomery::*;
-use core::marker::PhantomData;
 use crate::{c, error};
 use untrusted;
 
-pub use self::elem::*;
+use self::elem::*;
 pub use limb::*; // XXX // XXX
 
 /// A field element, i.e. an element of ℤ/qℤ for the curve's field modulus
@@ -44,7 +43,7 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn new_at_infinity() -> Point {
+    fn new_at_infinity() -> Point {
         Point {
             xyz: [0; 3 * MAX_LIMBS],
         }
@@ -79,20 +78,14 @@ macro_rules! limbs {
     };
 }
 
-static ONE: Elem<Unencoded> = Elem {
-    limbs: limbs![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    m: PhantomData,
-    encoding: PhantomData,
-};
-
 /// Operations and values needed by all curve operations.
 pub struct CommonOps {
     pub num_limbs: usize,
     q: Modulus,
-    pub n: Elem<Unencoded>,
+    n: Elem<Unencoded>,
 
-    pub a: Elem<R>, // Must be -3 mod q
-    pub b: Elem<R>,
+    a: Elem<R>, // Must be -3 mod q
+    b: Elem<R>,
 
     // In all cases, `r`, `a`, and `b` may all alias each other.
     elem_add_impl: unsafe extern "C" fn(r: *mut Limb, a: *const Limb, b: *const Limb),
@@ -103,30 +96,14 @@ pub struct CommonOps {
 }
 
 impl CommonOps {
-    #[inline]
-    pub fn elem_add<E: Encoding>(&self, a: &mut Elem<E>, b: &Elem<E>) {
-        binary_op_assign(self.elem_add_impl, a, b)
-    }
-
-    pub fn elems_are_equal(&self, a: &Elem<R>, b: &Elem<R>) -> bool {
-        for i in 0..self.num_limbs {
-            if a.limbs[i] != b.limbs[i] {
-                return false;
-            }
-        }
-        true
-    }
 
     #[inline]
-    pub fn elem_unencoded(&self, a: &Elem<R>) -> Elem<Unencoded> { self.elem_product(a, &ONE) }
-
-    #[inline]
-    pub fn elem_mul(&self, a: &mut Elem<R>, b: &Elem<R>) {
+    fn elem_mul(&self, a: &mut Elem<R>, b: &Elem<R>) {
         binary_op_assign(self.elem_mul_mont, a, b)
     }
 
     #[inline]
-    pub fn elem_product<EA: Encoding, EB: Encoding>(
+    fn elem_product<EA: Encoding, EB: Encoding>(
         &self, a: &Elem<EA>, b: &Elem<EB>,
     ) -> Elem<<(EA, EB) as ProductEncoding>::Output>
     where
@@ -136,50 +113,11 @@ impl CommonOps {
     }
 
     #[inline]
-    pub fn elem_square(&self, a: &mut Elem<R>) { unary_op_assign(self.elem_sqr_mont, a); }
+    fn elem_square(&self, a: &mut Elem<R>) { unary_op_assign(self.elem_sqr_mont, a); }
 
     #[inline]
-    pub fn elem_squared(&self, a: &Elem<R>) -> Elem<R> { unary_op(self.elem_sqr_mont, a) }
+    fn elem_squared(&self, a: &Elem<R>) -> Elem<R> { unary_op(self.elem_sqr_mont, a) }
 
-    #[inline]
-    pub fn is_zero<M, E: Encoding>(&self, a: &elem::Elem<M, E>) -> bool {
-        limbs_are_zero_constant_time(&a.limbs[..self.num_limbs]) == LimbMask::True
-    }
-
-    pub fn elem_verify_is_not_zero(&self, a: &Elem<R>) -> Result<(), error::Unspecified> {
-        if self.is_zero(a) {
-            Err(error::Unspecified)
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn point_sum(&self, a: &Point, b: &Point) -> Point {
-        let mut r = Point::new_at_infinity();
-        unsafe {
-            (self.point_add_jacobian_impl)(r.xyz.as_mut_ptr(), a.xyz.as_ptr(), b.xyz.as_ptr())
-        }
-        r
-    }
-
-    pub fn point_x(&self, p: &Point) -> Elem<R> {
-        let mut r = Elem::zero();
-        r.limbs[..self.num_limbs].copy_from_slice(&p.xyz[0..self.num_limbs]);
-        r
-    }
-
-    pub fn point_y(&self, p: &Point) -> Elem<R> {
-        let mut r = Elem::zero();
-        r.limbs[..self.num_limbs].copy_from_slice(&p.xyz[self.num_limbs..(2 * self.num_limbs)]);
-        r
-    }
-
-    pub fn point_z(&self, p: &Point) -> Elem<R> {
-        let mut r = Elem::zero();
-        r.limbs[..self.num_limbs]
-            .copy_from_slice(&p.xyz[(2 * self.num_limbs)..(3 * self.num_limbs)]);
-        r
-    }
 }
 
 struct Modulus {
@@ -201,11 +139,7 @@ pub struct PrivateKeyOps {
 }
 
 impl PrivateKeyOps {
-    #[inline(always)]
-    pub fn point_mul_base(&self, a: &Scalar) -> Point { (self.point_mul_base_impl)(a) }
-
-    #[inline(always)]
-    pub fn point_mul(&self, p_scalar: &Scalar, (p_x, p_y): &(Elem<R>, Elem<R>)) -> Point {
+    fn point_mul(&self, p_scalar: &Scalar, (p_x, p_y): &(Elem<R>, Elem<R>)) -> Point {
         let mut r = Point::new_at_infinity();
         unsafe {
             (self.point_mul_impl)(
@@ -217,78 +151,40 @@ impl PrivateKeyOps {
         }
         r
     }
-
-    #[inline]
-    pub fn elem_inverse_squared(&self, a: &Elem<R>) -> Elem<R> { (self.elem_inv_squared)(a) }
 }
 
 /// Operations and values needed by all operations on public keys (ECDH
 /// agreement and ECDSA verification).
 pub struct PublicKeyOps {
-    pub common: &'static CommonOps,
-}
-
-impl PublicKeyOps {
-    // The serialized bytes are in big-endian order, zero-padded. The limbs
-    // of `Elem` are in the native endianness, least significant limb to
-    // most significant limb. Besides the parsing, conversion, this also
-    // implements NIST SP 800-56A Step 2: "Verify that xQ and yQ are integers
-    // in the interval [0, p-1] in the case that q is an odd prime p[.]"
-    pub fn elem_parse(&self, input: &mut untrusted::Reader) -> Result<Elem<R>, error::Unspecified> {
-        let encoded_value = input.skip_and_get_input(self.common.num_limbs * LIMB_BYTES)?;
-        let parsed = elem_parse_big_endian_fixed_consttime(self.common, encoded_value)?;
-        let mut r = Elem::zero();
-        // Montgomery encode (elem_to_mont).
-        // TODO: do something about this.
-        unsafe {
-            (self.common.elem_mul_mont)(
-                r.limbs.as_mut_ptr(),
-                parsed.limbs.as_ptr(),
-                self.common.q.rr.as_ptr(),
-            )
-        }
-        Ok(r)
-    }
+    common: &'static CommonOps,
 }
 
 // Operations used by both ECDSA signing and ECDSA verification. In general
 // these must be side-channel resistant.
 pub struct ScalarOps {
-    pub common: &'static CommonOps,
+    common: &'static CommonOps,
 
     scalar_inv_to_mont_impl: fn(a: &Scalar) -> Scalar<R>,
     scalar_mul_mont: unsafe extern "C" fn(r: *mut Limb, a: *const Limb, b: *const Limb),
 }
 
-impl ScalarOps {
-    #[inline]
-    fn scalar_product<EA: Encoding, EB: Encoding>(
-        &self, a: &Scalar<EA>, b: &Scalar<EB>,
-    ) -> Scalar<<(EA, EB) as ProductEncoding>::Output>
-    where
-        (EA, EB): ProductEncoding,
-    {
-        mul_mont(self.scalar_mul_mont, a, b)
-    }
-}
-
 /// Operations on public scalars needed by ECDSA signature verification.
 pub struct PublicScalarOps {
-    pub scalar_ops: &'static ScalarOps,
-    pub public_key_ops: &'static PublicKeyOps,
+    scalar_ops: &'static ScalarOps,
+    public_key_ops: &'static PublicKeyOps,
 
     // XXX: `PublicScalarOps` shouldn't depend on `PrivateKeyOps`, but it does
     // temporarily until `twin_mul` is rewritten.
-    pub private_key_ops: &'static PrivateKeyOps,
+    private_key_ops: &'static PrivateKeyOps,
 
-    pub q_minus_n: Elem<Unencoded>,
+    q_minus_n: Elem<Unencoded>,
 }
 
 #[allow(non_snake_case)]
 pub struct PrivateScalarOps {
-    pub scalar_ops: &'static ScalarOps,
+    scalar_ops: &'static ScalarOps,
 
-    pub oneRR_mod_n: Scalar<RR>, // 1 * R**2 (mod n). TOOD: Use One<RR>.
+    oneRR_mod_n: Scalar<RR>, // 1 * R**2 (mod n). TOOD: Use One<RR>.
 }
 
 
@@ -309,13 +205,6 @@ fn elem_sqr_mul_acc(ops: &CommonOps, acc: &mut Elem<R>, squarings: usize, b: &El
         ops.elem_square(acc);
     }
     ops.elem_mul(acc, b)
-}
-
-#[inline]
-pub fn elem_parse_big_endian_fixed_consttime(
-    ops: &CommonOps, bytes: untrusted::Input,
-) -> Result<Elem<Unencoded>, error::Unspecified> {
-    parse_big_endian_fixed_consttime(ops, bytes, AllowZero::Yes, &ops.q.p[..ops.num_limbs])
 }
 
 #[inline]
