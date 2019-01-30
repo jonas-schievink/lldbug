@@ -43,111 +43,59 @@ const SHA512_X86_64: &str = "crypto/fipsmodule/sha/asm/sha512-x86_64.pl";
 const SHA256_ARMV8: &str = "crypto/fipsmodule/sha/asm/sha256-armv8.pl";
 const SHA512_ARMV8: &str = "crypto/fipsmodule/sha/asm/sha512-armv8.pl";
 
-const RING_TEST_SRCS: &[&str] = &[("crypto/constant_time_test.c")];
+const RING_TEST_SRCS: &[&str] = &[];
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const RING_INCLUDES: &[&str] =
-    &["crypto/fipsmodule/aes/internal.h",
-      "crypto/fipsmodule/bn/internal.h",
-      "crypto/fipsmodule/cipher/internal.h",
-      "crypto/fipsmodule/ec/ecp_nistz256_table.inl",
-      "crypto/fipsmodule/ec/ecp_nistz384.inl",
-      "crypto/fipsmodule/ec/ecp_nistz.h",
-      "crypto/fipsmodule/ec/ecp_nistz384.h",
-      "crypto/fipsmodule/ec/ecp_nistz256.h",
-      "crypto/internal.h",
+    &[
       "crypto/limbs/limbs.h",
-      "crypto/limbs/limbs.inl",
-      "crypto/fipsmodule/modes/internal.h",
-      "include/GFp/aes.h",
-      "include/GFp/arm_arch.h",
-      "include/GFp/base.h",
-      "include/GFp/cpu.h",
-      "include/GFp/mem.h",
-      "include/GFp/type_check.h",
-      "third_party/fiat/curve25519_tables.h",
-      "third_party/fiat/internal.h",
     ];
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
-const RING_PERL_INCLUDES: &[&str] =
-    &["crypto/perlasm/arm-xlate.pl",
-      "crypto/perlasm/x86gas.pl",
-      "crypto/perlasm/x86nasm.pl",
-      "crypto/perlasm/x86asm.pl",
-      "crypto/perlasm/x86_64-xlate.pl"];
+const RING_PERL_INCLUDES: &[&str] = &[];
 
 const RING_BUILD_FILE: &[&str] = &["build.rs"];
 
 const PREGENERATED: &'static str = "pregenerated";
 
 fn c_flags(target: &Target) -> &'static [&'static str] {
-    if target.env != MSVC {
-        static NON_MSVC_FLAGS: &[&str] = &[
-            "-std=c1x", // GCC 4.6 requires "c1x" instead of "c11"
-            "-Wbad-function-cast",
-            "-Wmissing-prototypes",
-            "-Wnested-externs",
-            "-Wstrict-prototypes",
-        ];
-        NON_MSVC_FLAGS
-    } else {
-        &[]
-    }
+    static NON_MSVC_FLAGS: &[&str] = &[
+        "-std=c1x", // GCC 4.6 requires "c1x" instead of "c11"
+        "-Wbad-function-cast",
+        "-Wmissing-prototypes",
+        "-Wnested-externs",
+        "-Wstrict-prototypes",
+    ];
+    NON_MSVC_FLAGS
 }
 
 fn cpp_flags(target: &Target) -> &'static [&'static str] {
-    if target.env != MSVC {
-        static NON_MSVC_FLAGS: &[&str] = &[
-            "-pedantic",
-            "-pedantic-errors",
-            "-Wall",
-            "-Wextra",
-            "-Wcast-align",
-            "-Wcast-qual",
-            "-Wenum-compare",
-            "-Wfloat-equal",
-            "-Wformat=2",
-            "-Winline",
-            "-Winvalid-pch",
-            "-Wmissing-declarations",
-            "-Wmissing-field-initializers",
-            "-Wmissing-include-dirs",
-            "-Wredundant-decls",
-            "-Wshadow",
-            "-Wsign-compare",
-            "-Wundef",
-            "-Wuninitialized",
-            "-Wwrite-strings",
-            "-fno-strict-aliasing",
-            "-fvisibility=hidden",
-            "-Wno-cast-align",
-        ];
-        NON_MSVC_FLAGS
-    } else {
-        static MSVC_FLAGS: &[&str] = &[
-            "/GS",   // Buffer security checks.
-            "/Gy",   // Enable function-level linking.
-            "/EHsc", // C++ exceptions only, only in C++.
-            "/GR-",  // Disable RTTI.
-            "/Zc:wchar_t",
-            "/Zc:forScope",
-            "/Zc:inline",
-            "/Zc:rvalueCast",
-            // Warnings.
-            "/sdl",
-            "/Wall",
-            "/wd4127", // C4127: conditional expression is constant
-            "/wd4464", // C4464: relative include path contains '..'
-            "/wd4514", // C4514: <name>: unreferenced inline function has be
-            "/wd4710", // C4710: function not inlined
-            "/wd4711", // C4711: function 'function' selected for inline expansion
-            "/wd4820", // C4820: <struct>: <n> bytes padding added after <name>
-            "/wd5045", /* C5045: Compiler will insert Spectre mitigation for memory load if
-                        * /Qspectre switch specified */
-        ];
-        MSVC_FLAGS
-    }
+    static NON_MSVC_FLAGS: &[&str] = &[
+        "-pedantic",
+        "-pedantic-errors",
+        "-Wall",
+        "-Wextra",
+        "-Wcast-align",
+        "-Wcast-qual",
+        "-Wenum-compare",
+        "-Wfloat-equal",
+        "-Wformat=2",
+        "-Winline",
+        "-Winvalid-pch",
+        "-Wmissing-declarations",
+        "-Wmissing-field-initializers",
+        "-Wmissing-include-dirs",
+        "-Wredundant-decls",
+        "-Wshadow",
+        "-Wsign-compare",
+        "-Wundef",
+        "-Wuninitialized",
+        "-Wwrite-strings",
+        "-fno-strict-aliasing",
+        "-fvisibility=hidden",
+        "-Wno-cast-align",
+    ];
+    NON_MSVC_FLAGS
 }
 
 const LD_FLAGS: &[&str] = &[];
@@ -339,7 +287,6 @@ fn build_c_code(target: &Target, pregenerated: PathBuf, out_dir: &Path) {
 
     let libs = [
         ("ring-core", &core_srcs[..], &asm_srcs[..]),
-        ("ring-test", &test_srcs[..], &[]),
     ];
 
     // XXX: Ideally, ring-test would only be built for `cargo test`, but Cargo
