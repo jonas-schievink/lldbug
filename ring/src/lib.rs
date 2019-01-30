@@ -11,8 +11,6 @@ mod c;
 pub mod ec;
 mod error;
 mod limb;
-mod rand;
-
 
 mod private {
     /// Traits that are designed to only be implemented internally in *ring*.
